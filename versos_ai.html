@@ -1,0 +1,231 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Versos & Programación AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Roboto:wght@400;700&display=swap');
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #ff5f6d, #ffc371);
+      font-family: 'Roboto', sans-serif;
+      color: #3b0a45;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header {
+      margin: 40px 0 20px 0;
+      text-align: center;
+    }
+    header h1 {
+      font-family: 'Great Vibes', cursive;
+      font-size: 4rem;
+      margin: 0;
+      color: #8b004f;
+      text-shadow: 1px 1px 4px #4a0030;
+    }
+    header p {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #600042;
+      margin-top: 5px;
+    }
+    main {
+      background: rgba(255, 255, 255, 0.85);
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(139,0,79,0.3);
+      max-width: 600px;
+      width: 90%;
+    }
+    label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #8b004f;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 12px 15px;
+      border-radius: 8px;
+      border: 2px solid #d45c7e;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+    input[type="text"]:focus, select:focus {
+      border-color: #8b004f;
+    }
+    button {
+      background: #8b004f;
+      color: white;
+      font-weight: 700;
+      padding: 12px 0;
+      font-size: 1rem;
+      border: none;
+      border-radius: 12px;
+      width: 100%;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      box-shadow: 0 4px 12px rgba(139,0,79,0.6);
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #600042;
+    }
+    section#verses {
+      margin-top: 30px;
+      font-size: 1.2rem;
+      color: #530033;
+      line-height: 1.7;
+      white-space: pre-line;
+      min-height: 100px;
+      user-select: text;
+      padding: 15px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+    }
+    footer {
+      margin: 40px 0;
+      font-size: 0.9rem;
+      color: #600042;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Versos & Programación AI</h1>
+    <p>Deja que tus palabras inspiren poesía</p>
+  </header>
+  <main>
+    <label for="wordsInput">Introduce tus palabras (separadas por espacios):</label>
+    <input id="wordsInput" type="text" placeholder="Ejemplo: amor sueño pasión luz" />
+
+    <label for="verseLength">Elige tipo de verso:</label>
+    <select id="verseLength">
+      <option value="short">Versos cortos</option>
+      <option value="long">Versos largos</option>
+    </select>
+
+    <button id="generateBtn">Generar Versos AI</button>
+    <button id="downloadImgBtn">Descargar como Imagen</button>
+    <button id="downloadPdfBtn">Descargar como PDF</button>
+
+    <section id="verses" aria-live="polite" aria-atomic="true" role="region"></section>
+  </main>
+  <footer>❤️ Creado con amor y código ❤️</footer>
+
+  <script>
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadImgBtn = document.getElementById('downloadImgBtn');
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    const versesEl = document.getElementById('verses');
+    const wordsInput = document.getElementById('wordsInput');
+    const verseLength = document.getElementById('verseLength');
+
+    const shortTemplates = [
+      "{word1}, {word2} en el aire,",
+      "Siento tu {word1} brillar,",
+      "Entre {word1} y {word2} vibra el alma,",
+      "La {word1} me guía,",
+      "{word1} y {word2} en un suspiro,",
+      "Dulce {word1}, eterno {word2},",
+      "Tus {word1} son mi canción."
+    ];
+    const longTemplates = [
+      "En la profundidad de tu {word1}, encuentro mi {word2} más sincero,",
+      "La {word1} danza con la {word2}, formando versos de pasión y deseo,",
+      "Bajo el cielo estrellado, nuestras {word1} y {word2} se entrelazan sin miedo,",
+      "Cada {word1} que pronuncio, es un lazo eterno hacia tu {word2},",
+      "Entre mil {word1} y un suspiro de {word2}, nace nuestro deseo infinito,",
+      "De tus {word1}, tomo la fuerza para soñar y escribir este {word2},",
+      "Mi {word1} y tu {word2} dialogan en silencio en la noche callada."
+    ];
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random()*arr.length)];
+    }
+
+    function generateVersesLocally(words, type) {
+      const uniqWords = [...new Set(words.filter(w => w.trim() !== ""))];
+      if (uniqWords.length < 2) return "Por favor, introduce al menos dos palabras distintas.";
+
+      let output = "";
+      const templates = type === "short" ? shortTemplates : longTemplates;
+      const lines = type === "short" ? 4 : 3;
+
+      for (let i = 0; i < lines; i++) {
+        const word1 = pickRandom(uniqWords);
+        let word2 = pickRandom(uniqWords.filter(w => w !== word1)) || word1;
+        let tmpl = pickRandom(templates).replace("{word1}", word1).replace("{word2}", word2);
+        output += tmpl + (type === "long" ? "\n\n" : "\n");
+      }
+      return output.trim();
+    }
+
+    async function generateAI(words, type) {
+      const prompt = `Escribe versos poéticos ${type === "short" ? "cortos" : "largos"} con estas palabras: ${words.join(', ')}. Sin repetir palabras.`;
+      const apiKey = "TU_API_KEY_AQUI";
+      const url = "https://api.openai.com/v1/chat/completions";
+
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.8
+          })
+        });
+
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content?.trim() || "No se pudo generar el verso.";
+      } catch (error) {
+        return "Error al conectar con la AI. Verifica tu API Key.";
+      }
+    }
+
+    generateBtn.addEventListener('click', async () => {
+      const words = wordsInput.value.toLowerCase().split(/\s+/);
+      const type = verseLength.value;
+      versesEl.textContent = "Generando versos...";
+      const result = await generateAI(words, type) || generateVersesLocally(words, type);
+      versesEl.textContent = result;
+    });
+
+    downloadImgBtn.addEventListener('click', () => {
+      html2canvas(versesEl).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "verso.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    });
+
+    downloadPdfBtn.addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      html2canvas(versesEl).then(canvas => {
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF();
+        const imgProps = pdf.getImageProperties(imgData);
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        pdf.addImage(imgData, 'PNG', 0, 10, pdfWidth, pdfHeight);
+        pdf.save("verso.pdf");
+      });
+    });
+  </script>
+</body>
+</html>
